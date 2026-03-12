@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="001-create-portfolios" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS portfolios (
+                id CHAR(36) NOT NULL,
+                user_id VARCHAR(128) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                currency ENUM('INR','USD') NOT NULL DEFAULT 'INR',
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (id),
+                INDEX idx_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+
+    <changeSet id="002-create-holdings" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS holdings (
+                id CHAR(36) NOT NULL,
+                portfolio_id CHAR(36) NOT NULL,
+                symbol VARCHAR(20) NOT NULL,
+                exchange ENUM('NSE','BSE','NYSE','NASDAQ') NOT NULL,
+                quantity DECIMAL(18,6) NOT NULL DEFAULT 0,
+                average_buy_price DECIMAL(18,4) NOT NULL,
+                currency ENUM('INR','USD') NOT NULL,
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (id),
+                UNIQUE KEY uk_holding (portfolio_id, symbol, exchange),
+                CONSTRAINT fk_holding_portfolio FOREIGN KEY (portfolio_id) REFERENCES portfolios(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+
+    <changeSet id="003-create-transactions" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS transactions (
+                id CHAR(36) NOT NULL,
+                holding_id CHAR(36) NOT NULL,
+                portfolio_id CHAR(36) NOT NULL,
+                type ENUM('BUY','SELL') NOT NULL,
+                quantity DECIMAL(18,6) NOT NULL,
+                price DECIMAL(18,4) NOT NULL,
+                notes TEXT,
+                transacted_at DATETIME(3) NOT NULL,
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (id),
+                CONSTRAINT fk_txn_holding FOREIGN KEY (holding_id) REFERENCES holdings(id) ON DELETE CASCADE,
+                INDEX idx_txn_portfolio (portfolio_id),
+                INDEX idx_txn_at (transacted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+
+    <changeSet id="004-create-watchlists" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS watchlists (
+                id CHAR(36) NOT NULL,
+                user_id VARCHAR(128) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (id),
+                INDEX idx_wl_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+
+    <changeSet id="005-create-watchlist-symbols" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS watchlist_symbols (
+                watchlist_id CHAR(36) NOT NULL,
+                symbol VARCHAR(20) NOT NULL,
+                exchange ENUM('NSE','BSE','NYSE','NASDAQ') NOT NULL,
+                added_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (watchlist_id, symbol, exchange),
+                CONSTRAINT fk_wl_sym FOREIGN KEY (watchlist_id) REFERENCES watchlists(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+
+    <changeSet id="006-create-price-alerts" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS price_alerts (
+                id CHAR(36) NOT NULL,
+                user_id VARCHAR(128) NOT NULL,
+                symbol VARCHAR(20) NOT NULL,
+                exchange ENUM('NSE','BSE','NYSE','NASDAQ') NOT NULL,
+                target_price DECIMAL(18,4) NOT NULL,
+                direction ENUM('ABOVE','BELOW') NOT NULL,
+                status ENUM('ACTIVE','TRIGGERED','CANCELLED') NOT NULL DEFAULT 'ACTIVE',
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                triggered_at DATETIME(3),
+                PRIMARY KEY (id),
+                INDEX idx_alert_user (user_id),
+                INDEX idx_alert_symbol_status (symbol, exchange, status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+
+    <changeSet id="007-create-analysis-configs" author="stockmarket">
+        <sql>
+            CREATE TABLE IF NOT EXISTS analysis_configs (
+                id CHAR(36) NOT NULL,
+                user_id VARCHAR(128) NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                model_type ENUM('WEIGHTED_SCORE','PIOTROSKI','ALTMAN_Z','RELATIVE','CUSTOM') NOT NULL,
+                params_json TEXT NOT NULL,
+                created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                PRIMARY KEY (id),
+                INDEX idx_ac_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

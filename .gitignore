@@ -1,0 +1,20 @@
+# Maven
+target/
+dependency-reduced-pom.xml
+
+# Logs
+logs/
+*.log
+
+# Node / Frontend
+src/main/frontend/node_modules/
+src/main/resources/assets/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+.DS_Store

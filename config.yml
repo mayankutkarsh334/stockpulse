@@ -1,0 +1,49 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 8081
+
+logging:
+  level: INFO
+  loggers:
+    com.stockmarket: DEBUG
+
+database:
+  driverClass: com.mysql.cj.jdbc.Driver
+  url: jdbc:mysql://localhost:3306/market_service?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  user: market_user
+  password: market_pass
+  minSize: 2
+  maxSize: 20
+  initialSize: 2
+
+alphaVantage:
+  apiKey: demo
+  baseUrl: https://www.alphavantage.co/query
+  rateLimitPerMinute: 5
+  dailyCallLimit: 25
+
+aerospike:
+  hosts:
+    - host: localhost
+      port: 3000
+  namespace: test
+  quoteTtlSeconds: 900
+  fundamentalsTtlSeconds: 86400
+  technicalsTtlSeconds: 3600
+
+kafka:
+  bootstrapServers: localhost:9092
+  priceAlertTopic: stock-price-alerts
+  analysisJobTopic: analysis-jobs
+  groupId: stock-investing-service
+
+rabbitMQ:
+  host: localhost
+  port: 5672
+  username: guest
+  password: guest
+  notificationQueue: notifications
