@@ -5,6 +5,8 @@ import com.stockmarket.config.KafkaConfig;
 import com.stockmarket.model.dto.request.AnalysisRequest;
 import com.stockmarket.service.AnalysisService;
 import io.dropwizard.lifecycle.Managed;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -14,17 +16,22 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
+@Singleton
 public class AnalysisJobConsumer implements Managed, Runnable {
 
     private final KafkaConsumer<String, String> consumer;
     private final AnalysisService analysisService;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private Thread consumerThread;
 
-    public AnalysisJobConsumer(KafkaConfig config, AnalysisService analysisService) {
+    @Inject
+    public AnalysisJobConsumer(final KafkaConfig config,
+                                final AnalysisService analysisService,
+                                final ObjectMapper mapper) {
         this.analysisService = analysisService;
-        Properties props = new Properties();
+        this.mapper = mapper;
+        final var props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, config.getGroupId() + "-analysis");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
@@ -40,10 +47,10 @@ public class AnalysisJobConsumer implements Managed, Runnable {
         log.info("AnalysisJobConsumer started");
         while (running.get()) {
             try {
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
-                for (ConsumerRecord<String, String> record : records) {
+                final var records = consumer.poll(Duration.ofMillis(500));
+                for (final ConsumerRecord<String, String> record : records) {
                     try {
-                        AnalysisRequest req = mapper.readValue(record.value(), AnalysisRequest.class);
+                        final var req = mapper.readValue(record.value(), AnalysisRequest.class);
                         log.info("Processing async analysis job for {} symbols", req.getSymbols().size());
                         analysisService.runAnalysis(req);
                     } catch (Exception e) {

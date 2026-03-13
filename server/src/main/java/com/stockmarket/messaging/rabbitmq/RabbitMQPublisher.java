@@ -7,27 +7,32 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.stockmarket.config.RabbitMQConfig;
 import com.stockmarket.model.entity.PriceAlert;
 import io.dropwizard.lifecycle.Managed;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Slf4j
+@Singleton
 public class RabbitMQPublisher implements Managed {
 
     private final RabbitMQConfig config;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
     private Connection connection;
     private Channel channel;
 
-    public RabbitMQPublisher(RabbitMQConfig config) {
+    @Inject
+    public RabbitMQPublisher(final RabbitMQConfig config, final ObjectMapper mapper) {
         this.config = config;
+        this.mapper = mapper;
     }
 
     @Override
     public void start() throws Exception {
         try {
-            ConnectionFactory factory = new ConnectionFactory();
+            final var factory = new ConnectionFactory();
             factory.setHost(config.getHost());
             factory.setPort(config.getPort());
             factory.setUsername(config.getUsername());
@@ -51,13 +56,13 @@ public class RabbitMQPublisher implements Managed {
         }
     }
 
-    public void publishAlertNotification(PriceAlert alert, BigDecimal currentPrice) {
+    public void publishAlertNotification(final PriceAlert alert, final BigDecimal currentPrice) {
         if (channel == null || !channel.isOpen()) {
             log.warn("RabbitMQ channel not available, skipping notification");
             return;
         }
         try {
-            Map<String, Object> notification = Map.of(
+            final var notification = Map.of(
                     "type", "PRICE_ALERT",
                     "userId", alert.getUserId(),
                     "symbol", alert.getSymbol(),
@@ -67,7 +72,7 @@ public class RabbitMQPublisher implements Managed {
                     "currentPrice", currentPrice,
                     "alertId", alert.getId()
             );
-            String json = mapper.writeValueAsString(notification);
+            final var json = mapper.writeValueAsString(notification);
             channel.basicPublish("", config.getNotificationQueue(),
                     null, json.getBytes(StandardCharsets.UTF_8));
             log.info("Published alert notification for {}", alert.getSymbol());

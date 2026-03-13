@@ -1,11 +1,12 @@
 package com.stockmarket.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.stockmarket.config.KafkaConfig;
 import com.stockmarket.model.cache.StockQuote;
 import com.stockmarket.service.AlertService;
 import io.dropwizard.lifecycle.Managed;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -15,6 +16,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
+@Singleton
 public class PriceAlertConsumer implements Managed, Runnable {
 
     private final KafkaConsumer<String, String> consumer;
@@ -23,10 +25,13 @@ public class PriceAlertConsumer implements Managed, Runnable {
     private final AtomicBoolean running = new AtomicBoolean(false);
     private Thread consumerThread;
 
-    public PriceAlertConsumer(KafkaConfig config, AlertService alertService) {
+    @Inject
+    public PriceAlertConsumer(final KafkaConfig config,
+                               final AlertService alertService,
+                               final ObjectMapper mapper) {
         this.alertService = alertService;
-        this.mapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        Properties props = new Properties();
+        this.mapper = mapper;
+        final var props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.getBootstrapServers());
         props.put(ConsumerConfig.GROUP_ID_CONFIG, config.getGroupId() + "-alert");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
@@ -42,10 +47,10 @@ public class PriceAlertConsumer implements Managed, Runnable {
         log.info("PriceAlertConsumer started");
         while (running.get()) {
             try {
-                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
-                for (ConsumerRecord<String, String> record : records) {
+                final var records = consumer.poll(Duration.ofMillis(500));
+                for (final ConsumerRecord<String, String> record : records) {
                     try {
-                        StockQuote quote = mapper.readValue(record.value(), StockQuote.class);
+                        final var quote = mapper.readValue(record.value(), StockQuote.class);
                         alertService.processQuoteForAlerts(quote);
                     } catch (Exception e) {
                         log.error("Error processing alert record: {}", e.getMessage());

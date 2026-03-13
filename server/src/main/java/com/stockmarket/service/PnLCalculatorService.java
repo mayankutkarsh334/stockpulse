@@ -1,35 +1,39 @@
 package com.stockmarket.service;
 
-import com.stockmarket.model.cache.StockQuote;
 import com.stockmarket.model.dto.response.HoldingResponse;
 import com.stockmarket.model.entity.Holding;
-import com.stockmarket.model.enums.Exchange;
-import lombok.RequiredArgsConstructor;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 @Slf4j
-@RequiredArgsConstructor
+@Singleton
 public class PnLCalculatorService {
 
     private final QuoteService quoteService;
 
-    public HoldingResponse computeHoldingPnL(Holding holding) {
+    @Inject
+    public PnLCalculatorService(final QuoteService quoteService) {
+        this.quoteService = quoteService;
+    }
+
+    public HoldingResponse computeHoldingPnL(final Holding holding) {
         BigDecimal currentPrice;
         try {
-            StockQuote quote = quoteService.getQuote(holding.getSymbol(), holding.getExchange());
+            final var quote = quoteService.getQuote(holding.getSymbol(), holding.getExchange());
             currentPrice = quote.getPrice();
         } catch (IOException e) {
             log.warn("Could not fetch quote for {}/{}: {}", holding.getSymbol(), holding.getExchange(), e.getMessage());
             currentPrice = holding.getAverageBuyPrice(); // fallback: no P&L
         }
 
-        BigDecimal investedValue = holding.getAverageBuyPrice().multiply(holding.getQuantity());
-        BigDecimal currentValue = currentPrice.multiply(holding.getQuantity());
-        BigDecimal pnl = currentValue.subtract(investedValue);
-        BigDecimal pnlPercent = investedValue.compareTo(BigDecimal.ZERO) == 0
+        final var investedValue = holding.getAverageBuyPrice().multiply(holding.getQuantity());
+        final var currentValue = currentPrice.multiply(holding.getQuantity());
+        final var pnl = currentValue.subtract(investedValue);
+        final var pnlPercent = investedValue.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO
                 : pnl.divide(investedValue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
 
@@ -51,11 +55,11 @@ public class PnLCalculatorService {
     /**
      * Weighted average price for BUY: newAvg = (currentQty * currentAvg + newQty * txnPrice) / (currentQty + newQty)
      */
-    public BigDecimal computeNewAveragePrice(BigDecimal currentQty, BigDecimal currentAvg,
-                                              BigDecimal newQty, BigDecimal txnPrice) {
-        BigDecimal totalQty = currentQty.add(newQty);
+    public BigDecimal computeNewAveragePrice(final BigDecimal currentQty, final BigDecimal currentAvg,
+                                              final BigDecimal newQty, final BigDecimal txnPrice) {
+        final var totalQty = currentQty.add(newQty);
         if (totalQty.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
-        BigDecimal totalCost = currentQty.multiply(currentAvg).add(newQty.multiply(txnPrice));
+        final var totalCost = currentQty.multiply(currentAvg).add(newQty.multiply(txnPrice));
         return totalCost.divide(totalQty, 4, RoundingMode.HALF_UP);
     }
 }

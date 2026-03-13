@@ -4,19 +4,17 @@ import com.stockmarket.client.AlphaVantageClient;
 import com.stockmarket.dao.aerospike.FundamentalsCache;
 import com.stockmarket.dao.aerospike.TechnicalsCache;
 import com.stockmarket.kafka.producer.AnalysisJobProducer;
-import com.stockmarket.model.cache.StockFundamentals;
-import com.stockmarket.model.cache.StockTechnicals;
 import com.stockmarket.model.dto.request.ScreenerScanRequest;
 import com.stockmarket.model.dto.response.ScreenerResultResponse;
-import com.stockmarket.model.enums.ScreenerIndicator;
 import com.stockmarket.screener.ScreenerEngine;
-import lombok.RequiredArgsConstructor;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RequiredArgsConstructor
+@Singleton
 public class ScreenerService {
 
     private final FundamentalsCache fundamentalsCache;
@@ -25,35 +23,48 @@ public class ScreenerService {
     private final AnalysisJobProducer analysisJobProducer;
     private final ScreenerEngine screenerEngine = new ScreenerEngine();
 
-    public ScreenerResultResponse scan(ScreenerScanRequest req) {
-        List<ScreenerResultResponse.ScreenerMatch> matches = new ArrayList<>();
-        for (String symbol : req.getSymbols()) {
+    @Inject
+    public ScreenerService(final FundamentalsCache fundamentalsCache,
+                           final TechnicalsCache technicalsCache,
+                           final AlphaVantageClient avClient,
+                           final AnalysisJobProducer analysisJobProducer) {
+        this.fundamentalsCache = fundamentalsCache;
+        this.technicalsCache = technicalsCache;
+        this.avClient = avClient;
+        this.analysisJobProducer = analysisJobProducer;
+    }
+
+    public ScreenerResultResponse scan(final ScreenerScanRequest req) {
+        final var matches = new ArrayList<ScreenerResultResponse.ScreenerMatch>();
+        for (final String symbol : req.getSymbols()) {
             try {
-                StockFundamentals fundamentals = fundamentalsCache.get(symbol, req.getExchange())
+                final var fundamentals = fundamentalsCache.get(symbol, req.getExchange())
                         .orElseGet(() -> {
                             try {
-                                StockFundamentals f = avClient.fetchFundamentals(symbol, req.getExchange());
+                                final var f = avClient.fetchFundamentals(symbol, req.getExchange());
                                 fundamentalsCache.put(f);
                                 return f;
                             } catch (Exception e) {
                                 log.warn("Failed to fetch fundamentals for {}: {}", symbol, e.getMessage());
-                                return StockFundamentals.builder().symbol(symbol).exchange(req.getExchange()).build();
+                                return com.stockmarket.model.cache.StockFundamentals.builder()
+                                        .symbol(symbol).exchange(req.getExchange()).build();
                             }
                         });
 
-                StockTechnicals technicals = technicalsCache.get(symbol, req.getExchange())
+                final var technicals = technicalsCache.get(symbol, req.getExchange())
                         .orElseGet(() -> {
                             try {
-                                StockTechnicals t = avClient.fetchTechnicals(symbol, req.getExchange());
+                                final var t = avClient.fetchTechnicals(symbol, req.getExchange());
                                 technicalsCache.put(t);
                                 return t;
                             } catch (Exception e) {
                                 log.warn("Failed to fetch technicals for {}: {}", symbol, e.getMessage());
-                                return StockTechnicals.builder().symbol(symbol).exchange(req.getExchange()).build();
+                                return com.stockmarket.model.cache.StockTechnicals.builder()
+                                        .symbol(symbol).exchange(req.getExchange()).build();
                             }
                         });
 
-                var result = screenerEngine.evaluate(symbol, req.getExchange(), fundamentals, technicals, req.getFilters());
+                final var result = screenerEngine.evaluate(symbol, req.getExchange(), fundamentals, technicals, req.getFilters());
                 if (result != null) matches.add(result);
             } catch (Exception e) {
                 log.error("Error evaluating screener for {}: {}", symbol, e.getMessage());

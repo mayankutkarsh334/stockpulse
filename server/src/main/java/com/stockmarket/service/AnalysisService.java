@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockmarket.analysis.AnalysisEngine;
 import com.stockmarket.analysis.MetricFetcher;
 import com.stockmarket.analysis.MetricSnapshot;
-import com.stockmarket.analysis.StockScore;
 import com.stockmarket.client.AlphaVantageClient;
 import com.stockmarket.dao.aerospike.FundamentalsCache;
 import com.stockmarket.dao.aerospike.TechnicalsCache;
@@ -14,15 +13,16 @@ import com.stockmarket.model.dto.request.AnalysisRequest;
 import com.stockmarket.model.dto.response.AnalysisResultResponse;
 import com.stockmarket.model.entity.AnalysisConfig;
 import com.stockmarket.model.enums.AnalysisModelType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RequiredArgsConstructor
+@Singleton
 public class AnalysisService {
 
     private final FundamentalsCache fundamentalsCache;
@@ -30,12 +30,26 @@ public class AnalysisService {
     private final AlphaVantageClient avClient;
     private final AnalysisConfigDao analysisConfigDao;
     private final AnalysisJobProducer analysisJobProducer;
+    private final ObjectMapper objectMapper;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Inject
+    public AnalysisService(final FundamentalsCache fundamentalsCache,
+                           final TechnicalsCache technicalsCache,
+                           final AlphaVantageClient avClient,
+                           final AnalysisConfigDao analysisConfigDao,
+                           final AnalysisJobProducer analysisJobProducer,
+                           final ObjectMapper objectMapper) {
+        this.fundamentalsCache = fundamentalsCache;
+        this.technicalsCache = technicalsCache;
+        this.avClient = avClient;
+        this.analysisConfigDao = analysisConfigDao;
+        this.analysisJobProducer = analysisJobProducer;
+        this.objectMapper = objectMapper;
+    }
 
-    public AnalysisResultResponse runAnalysis(AnalysisRequest req) {
-        MetricFetcher fetcher = new MetricFetcher(fundamentalsCache, technicalsCache, avClient);
-        List<MetricSnapshot> snapshots = req.getSymbols().stream()
+    public AnalysisResultResponse runAnalysis(final AnalysisRequest req) {
+        final var fetcher = new MetricFetcher(fundamentalsCache, technicalsCache, avClient);
+        final var snapshots = req.getSymbols().stream()
                 .map(s -> {
                     try {
                         return fetcher.fetch(s, req.getExchange());
@@ -46,10 +60,10 @@ public class AnalysisService {
                 })
                 .collect(Collectors.toList());
 
-        AnalysisEngine engine = new AnalysisEngine();
-        List<StockScore> scores = engine.analyze(req.getModelType(), snapshots, req.getParams());
+        final var engine = new AnalysisEngine();
+        final var scores = engine.analyze(req.getModelType(), snapshots, req.getParams());
 
-        List<AnalysisResultResponse.RankedStock> ranked = scores.stream()
+        final var ranked = scores.stream()
                 .map(s -> AnalysisResultResponse.RankedStock.builder()
                         .symbol(s.symbol())
                         .exchange(s.exchange())
@@ -67,10 +81,11 @@ public class AnalysisService {
                 .build();
     }
 
-    public AnalysisConfig saveConfig(String userId, String name, AnalysisModelType modelType, Object params) {
+    public AnalysisConfig saveConfig(final String userId, final String name,
+                                     final AnalysisModelType modelType, final Object params) {
         try {
-            String paramsJson = objectMapper.writeValueAsString(params);
-            AnalysisConfig config = AnalysisConfig.builder()
+            final var paramsJson = objectMapper.writeValueAsString(params);
+            final var config = AnalysisConfig.builder()
                     .id(UUID.randomUUID().toString())
                     .userId(userId)
                     .name(name)
@@ -84,7 +99,7 @@ public class AnalysisService {
         }
     }
 
-    public AnalysisConfig getConfig(String configId) {
+    public AnalysisConfig getConfig(final String configId) {
         return analysisConfigDao.findById(configId)
                 .orElseThrow(() -> new NotFoundException("Analysis config not found: " + configId));
     }

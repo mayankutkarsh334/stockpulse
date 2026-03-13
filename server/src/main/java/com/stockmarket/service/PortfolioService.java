@@ -11,20 +11,20 @@ import com.stockmarket.model.entity.Holding;
 import com.stockmarket.model.entity.Portfolio;
 import com.stockmarket.model.entity.Transaction;
 import com.stockmarket.model.enums.TransactionType;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RequiredArgsConstructor
+@Singleton
 public class PortfolioService {
 
     private final PortfolioDao portfolioDao;
@@ -32,8 +32,19 @@ public class PortfolioService {
     private final TransactionDao transactionDao;
     private final PnLCalculatorService pnlCalculatorService;
 
-    public Portfolio createPortfolio(CreatePortfolioRequest req) {
-        Portfolio portfolio = Portfolio.builder()
+    @Inject
+    public PortfolioService(final PortfolioDao portfolioDao,
+                            final HoldingDao holdingDao,
+                            final TransactionDao transactionDao,
+                            final PnLCalculatorService pnlCalculatorService) {
+        this.portfolioDao = portfolioDao;
+        this.holdingDao = holdingDao;
+        this.transactionDao = transactionDao;
+        this.pnlCalculatorService = pnlCalculatorService;
+    }
+
+    public Portfolio createPortfolio(final CreatePortfolioRequest req) {
+        final var portfolio = Portfolio.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(req.getUserId())
                 .name(req.getName())
@@ -43,23 +54,23 @@ public class PortfolioService {
         return portfolio;
     }
 
-    public PortfolioResponse getPortfolioWithPnL(String portfolioId) {
-        Portfolio portfolio = portfolioDao.findById(portfolioId)
+    public PortfolioResponse getPortfolioWithPnL(final String portfolioId) {
+        final var portfolio = portfolioDao.findById(portfolioId)
                 .orElseThrow(() -> new NotFoundException("Portfolio not found: " + portfolioId));
 
-        List<Holding> holdings = holdingDao.findByPortfolioId(portfolioId);
-        List<HoldingResponse> holdingResponses = holdings.stream()
+        final var holdings = holdingDao.findByPortfolioId(portfolioId);
+        final var holdingResponses = holdings.stream()
                 .map(pnlCalculatorService::computeHoldingPnL)
                 .collect(Collectors.toList());
 
-        BigDecimal totalInvested = holdingResponses.stream()
+        final var totalInvested = holdingResponses.stream()
                 .map(HoldingResponse::getInvestedValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalCurrentValue = holdingResponses.stream()
+        final var totalCurrentValue = holdingResponses.stream()
                 .map(HoldingResponse::getCurrentValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalPnl = totalCurrentValue.subtract(totalInvested);
-        BigDecimal totalPnlPercent = totalInvested.compareTo(BigDecimal.ZERO) == 0
+        final var totalPnl = totalCurrentValue.subtract(totalInvested);
+        final var totalPnlPercent = totalInvested.compareTo(BigDecimal.ZERO) == 0
                 ? BigDecimal.ZERO
                 : totalPnl.divide(totalInvested, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
 
@@ -77,11 +88,11 @@ public class PortfolioService {
                 .build();
     }
 
-    public Transaction addTransaction(String portfolioId, AddTransactionRequest req) {
-        Portfolio portfolio = portfolioDao.findById(portfolioId)
+    public Transaction addTransaction(final String portfolioId, final AddTransactionRequest req) {
+        final var portfolio = portfolioDao.findById(portfolioId)
                 .orElseThrow(() -> new NotFoundException("Portfolio not found: " + portfolioId));
 
-        Optional<Holding> existingHolding = holdingDao.findByPortfolioSymbolExchange(
+        final var existingHolding = holdingDao.findByPortfolioSymbolExchange(
                 portfolioId, req.getSymbol(), req.getExchange().name());
 
         String holdingId;
@@ -89,7 +100,7 @@ public class PortfolioService {
             if (req.getType() == TransactionType.SELL) {
                 throw new IllegalArgumentException("Cannot SELL a holding you don't have");
             }
-            Holding holding = Holding.builder()
+            final var holding = Holding.builder()
                     .id(UUID.randomUUID().toString())
                     .portfolioId(portfolioId)
                     .symbol(req.getSymbol())
@@ -101,15 +112,15 @@ public class PortfolioService {
             holdingDao.insert(holding);
             holdingId = holding.getId();
         } else {
-            Holding h = existingHolding.get();
+            final var h = existingHolding.get();
             holdingId = h.getId();
             if (req.getType() == TransactionType.BUY) {
-                BigDecimal newAvg = pnlCalculatorService.computeNewAveragePrice(
+                final var newAvg = pnlCalculatorService.computeNewAveragePrice(
                         h.getQuantity(), h.getAverageBuyPrice(), req.getQuantity(), req.getPrice());
-                BigDecimal newQty = h.getQuantity().add(req.getQuantity());
+                final var newQty = h.getQuantity().add(req.getQuantity());
                 holdingDao.updateQuantityAndAvgPrice(holdingId, newQty, newAvg);
             } else {
-                BigDecimal newQty = h.getQuantity().subtract(req.getQuantity());
+                final var newQty = h.getQuantity().subtract(req.getQuantity());
                 if (newQty.compareTo(BigDecimal.ZERO) < 0) {
                     throw new IllegalArgumentException("Insufficient quantity to sell");
                 }
@@ -117,7 +128,7 @@ public class PortfolioService {
             }
         }
 
-        Transaction txn = Transaction.builder()
+        final var txn = Transaction.builder()
                 .id(UUID.randomUUID().toString())
                 .holdingId(holdingId)
                 .portfolioId(portfolioId)

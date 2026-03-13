@@ -8,11 +8,10 @@ import com.stockmarket.model.dto.response.AlertResponse;
 import com.stockmarket.model.entity.PriceAlert;
 import com.stockmarket.model.enums.AlertDirection;
 import com.stockmarket.model.enums.AlertStatus;
-import com.stockmarket.model.enums.Exchange;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,15 +19,24 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
-@RequiredArgsConstructor
+@Singleton
 public class AlertService {
 
     private final PriceAlertDao priceAlertDao;
     private final QuoteService quoteService;
     private final RabbitMQPublisher rabbitMQPublisher;
 
-    public PriceAlert createAlert(CreateAlertRequest req) {
-        PriceAlert alert = PriceAlert.builder()
+    @Inject
+    public AlertService(final PriceAlertDao priceAlertDao,
+                        final QuoteService quoteService,
+                        final RabbitMQPublisher rabbitMQPublisher) {
+        this.priceAlertDao = priceAlertDao;
+        this.quoteService = quoteService;
+        this.rabbitMQPublisher = rabbitMQPublisher;
+    }
+
+    public PriceAlert createAlert(final CreateAlertRequest req) {
+        final var alert = PriceAlert.builder()
                 .id(UUID.randomUUID().toString())
                 .userId(req.getUserId())
                 .symbol(req.getSymbol().toUpperCase())
@@ -41,23 +49,23 @@ public class AlertService {
         return alert;
     }
 
-    public List<AlertResponse> getAlertsByUser(String userId, AlertStatus status) {
+    public List<AlertResponse> getAlertsByUser(final String userId, final AlertStatus status) {
         return priceAlertDao.findByUserIdAndStatus(userId, status.name())
                 .stream()
                 .map(this::toAlertResponse)
                 .collect(Collectors.toList());
     }
 
-    public void cancelAlert(String alertId) {
+    public void cancelAlert(final String alertId) {
         priceAlertDao.cancel(alertId);
     }
 
-    public void processQuoteForAlerts(StockQuote quote) {
-        List<PriceAlert> activeAlerts = priceAlertDao
+    public void processQuoteForAlerts(final StockQuote quote) {
+        final var activeAlerts = priceAlertDao
                 .findActiveBySymbolAndExchange(quote.getSymbol(), quote.getExchange().name());
 
-        for (PriceAlert alert : activeAlerts) {
-            boolean triggered = (alert.getDirection() == AlertDirection.ABOVE
+        for (final PriceAlert alert : activeAlerts) {
+            final var triggered = (alert.getDirection() == AlertDirection.ABOVE
                     && quote.getPrice().compareTo(alert.getTargetPrice()) >= 0)
                     || (alert.getDirection() == AlertDirection.BELOW
                     && quote.getPrice().compareTo(alert.getTargetPrice()) <= 0);
@@ -75,10 +83,10 @@ public class AlertService {
         }
     }
 
-    private AlertResponse toAlertResponse(PriceAlert alert) {
+    private AlertResponse toAlertResponse(final PriceAlert alert) {
         BigDecimal currentPrice = BigDecimal.ZERO;
         try {
-            var quote = quoteService.getCachedQuote(alert.getSymbol(), alert.getExchange());
+            final var quote = quoteService.getCachedQuote(alert.getSymbol(), alert.getExchange());
             if (quote.isPresent()) currentPrice = quote.get().getPrice();
         } catch (Exception ignored) {}
 
