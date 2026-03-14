@@ -16,6 +16,10 @@ import okhttp3.Request;
 import okhttp3.Response;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -27,9 +31,11 @@ public class AlphaVantageClient {
     private final RateLimiter rateLimiter;
     private final CircuitBreaker circuitBreaker;
     private final AtomicInteger dailyCallCount = new AtomicInteger(0);
+    private final ExecutorService executor;
 
     @Inject
-    public AlphaVantageClient(final AlphaVantageConfig config) {
+    public AlphaVantageClient(final AlphaVantageConfig config, final ExecutorService executor) {
+        this.executor = executor;
         this.config = config;
         this.httpClient = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -125,12 +131,53 @@ public class AlphaVantageClient {
     }
 
     public StockTechnicals fetchTechnicals(final String symbol, final Exchange exchange) throws IOException {
-        final var rsiJson = fetchRsiRaw(symbol, exchange);
-        final var macdJson = fetchMacdRaw(symbol, exchange);
-        final var sma20Json = fetchSmaRaw(symbol, exchange, 20);
-        final var sma50Json = fetchSmaRaw(symbol, exchange, 50);
-        final var sma200Json = fetchSmaRaw(symbol, exchange, 200);
-        return AlphaVantageResponseParser.parseTechnicals(rsiJson, macdJson, sma20Json, sma50Json, sma200Json, symbol, exchange);
+        return fetchTechnicals(symbol, exchange, Set.of());
+    }
+
+    public StockTechnicals fetchTechnicals(final String symbol, final Exchange exchange,
+                                            final Set<String> required) throws IOException {
+        final boolean all  = required.isEmpty();
+        final boolean rsi  = all || required.contains("RSI_14");
+        final boolean macd = all || required.stream().anyMatch(m -> m.startsWith("MACD"));
+        final boolean s20  = all || required.contains("SMA_20");
+        final boolean s50  = all || required.contains("SMA_50");
+        final boolean s200 = all || required.contains("SMA_200");
+
+        try {
+            final var rsiFuture  = rsi  ? supplyFetch(() -> fetchRsiRaw(symbol, exchange))       : done(null);
+            final var macdFuture = macd ? supplyFetch(() -> fetchMacdRaw(symbol, exchange))      : done(null);
+            final var s20Future  = s20  ? supplyFetch(() -> fetchSmaRaw(symbol, exchange, 20))   : done(null);
+            final var s50Future  = s50  ? supplyFetch(() -> fetchSmaRaw(symbol, exchange, 50))   : done(null);
+            final var s200Future = s200 ? supplyFetch(() -> fetchSmaRaw(symbol, exchange, 200))  : done(null);
+
+            CompletableFuture.allOf(rsiFuture, macdFuture, s20Future, s50Future, s200Future).join();
+            return AlphaVantageResponseParser.parseTechnicals(
+                    rsiFuture.join(), macdFuture.join(), s20Future.join(),
+                    s50Future.join(), s200Future.join(), symbol, exchange);
+        } catch (CompletionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof IOException) throw (IOException) cause;
+            throw new IOException("Technicals fetch failed: " + cause.getMessage(), cause);
+        }
+    }
+
+    private CompletableFuture<String> supplyFetch(final CheckedSupplier<String> supplier) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return supplier.get();
+            } catch (IOException e) {
+                throw new CompletionException(e);
+            }
+        }, executor);
+    }
+
+    private static CompletableFuture<String> done(final String val) {
+        return CompletableFuture.completedFuture(val);
+    }
+
+    @FunctionalInterface
+    interface CheckedSupplier<T> {
+        T get() throws IOException;
     }
 
     public boolean isHealthy() {

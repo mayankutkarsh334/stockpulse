@@ -2,6 +2,8 @@ package com.stockmarket.inject;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.policy.ClientPolicy;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -14,6 +16,8 @@ import com.stockmarket.config.RabbitMQConfig;
 import com.stockmarket.messaging.rabbitmq.RabbitMQPublisher;
 import io.dropwizard.core.setup.Environment;
 import io.dropwizard.lifecycle.Managed;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class InfrastructureModule extends AbstractModule {
 
@@ -21,6 +25,12 @@ public class InfrastructureModule extends AbstractModule {
     protected void configure() {
         bind(AlphaVantageClient.class).in(Singleton.class);
         bind(RabbitMQPublisher.class).in(Singleton.class);
+    }
+
+    @Provides
+    @Singleton
+    ObjectMapper provideObjectMapper(final Environment environment) {
+        return environment.getObjectMapper().registerModule(new JavaTimeModule());
     }
 
     @Provides
@@ -45,6 +55,23 @@ public class InfrastructureModule extends AbstractModule {
     @Singleton
     RabbitMQConfig provideRabbitMQConfig(final MarketServiceConfiguration config) {
         return config.getRabbitMQ();
+    }
+
+    @Provides
+    @Singleton
+    ExecutorService provideAnalysisExecutor(final Environment environment) {
+        final var executor = Executors.newFixedThreadPool(30);
+        environment.lifecycle().manage(new Managed() {
+            @Override
+            public void start() {
+            }
+
+            @Override
+            public void stop() {
+                executor.shutdown();
+            }
+        });
+        return executor;
     }
 
     @Provides

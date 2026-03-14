@@ -14,8 +14,21 @@ public class RelativeComparisonModel implements AnalysisModel {
     private static final List<String> DEFAULT_METRICS =
             List.of("PE", "EPS_GROWTH", "ROA", "DEBT_TO_EQUITY", "CURRENT_RATIO", "GROSS_MARGIN");
 
+    private static final Set<String> DEFAULT_METRICS_SET =
+            Set.of("PE", "EPS_GROWTH", "ROA", "DEBT_TO_EQUITY", "CURRENT_RATIO", "GROSS_MARGIN");
+
     @Override
     public AnalysisModelType getType() { return AnalysisModelType.RELATIVE; }
+
+    @Override
+    public Set<String> requiredMetrics(Map<String, Object> params) {
+        if (params != null && params.containsKey("metrics")) {
+            @SuppressWarnings("unchecked")
+            List<String> m = (List<String>) params.get("metrics");
+            return new HashSet<>(m);
+        }
+        return DEFAULT_METRICS_SET;
+    }
 
     @Override
     public List<StockScore> analyze(List<MetricSnapshot> snapshots, Map<String, Object> params) {

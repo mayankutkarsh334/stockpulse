@@ -12,6 +12,12 @@ public class AltmanZScoreModel implements AnalysisModel {
     public AnalysisModelType getType() { return AnalysisModelType.ALTMAN_Z; }
 
     @Override
+    public Set<String> requiredMetrics(Map<String, Object> params) {
+        return Set.of("WORKING_CAPITAL", "TOTAL_ASSETS", "RETAINED_EARNINGS",
+                "EBIT", "MARKET_CAP", "TOTAL_LIABILITIES", "REVENUE_GROWTH");
+    }
+
+    @Override
     public List<StockScore> analyze(List<MetricSnapshot> snapshots, Map<String, Object> params) {
         List<StockScore> scores = new ArrayList<>();
         for (MetricSnapshot s : snapshots) {

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'
 import PortfolioPage from './pages/PortfolioPage'
 import ScreenerPage from './pages/ScreenerPage'
 import AnalysisPage from './pages/AnalysisPage'
@@ -6,7 +6,7 @@ import ChartPage from './pages/ChartPage'
 
 export default function App() {
   return (
-    <BrowserRouter basename="/ui">
+    <HashRouter>
       <div className="min-h-screen flex flex-col">
         <nav className="bg-slate-800 text-white px-6 py-3 flex items-center gap-6">
           <span className="font-bold text-lg mr-4">StockInvest</span>
@@ -29,6 +29,6 @@ export default function App() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

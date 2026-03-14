@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { runScan, FilterCriteria, ScreenerResult } from '../api/screenerApi'
 import FilterBuilder from '../components/FilterBuilder'
 import ScreenerResultsTable from '../components/ScreenerResultsTable'
+import StockSymbolPicker from '../components/StockSymbolPicker'
 
 const INDICATORS = ['PE', 'EPS', 'EPS_GROWTH', 'RSI_14', 'MACD_VALUE', 'SMA_50', 'MARKET_CAP',
   'DEBT_TO_EQUITY', 'CURRENT_RATIO', 'ROA', 'DIVIDEND_YIELD']
 
 export default function ScreenerPage() {
-  const [symbolsText, setSymbolsText] = useState('RELIANCE,TCS,INFY')
+  const [symbols, setSymbols] = useState(['RELIANCE', 'TCS', 'INFY'])
   const [exchange, setExchange] = useState('NSE')
   const [filters, setFilters] = useState<FilterCriteria[]>([
     { indicator: 'RSI_14', operator: 'LT', value: 50 }
@@ -17,7 +18,6 @@ export default function ScreenerPage() {
   const [error, setError] = useState('')
 
   const handleScan = async () => {
-    const symbols = symbolsText.split(',').map(s => s.trim()).filter(Boolean)
     setLoading(true)
     setError('')
     try {
@@ -36,9 +36,8 @@ export default function ScreenerPage() {
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Symbols (comma-separated)</label>
-            <input className="border rounded px-3 py-2 w-full"
-              value={symbolsText} onChange={e => setSymbolsText(e.target.value)} />
+            <label className="block text-sm font-medium mb-1">Symbols</label>
+            <StockSymbolPicker exchange={exchange} selected={symbols} onChange={setSymbols} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Exchange</label>

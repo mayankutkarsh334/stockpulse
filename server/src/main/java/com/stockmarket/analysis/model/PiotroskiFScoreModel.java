@@ -12,6 +12,13 @@ public class PiotroskiFScoreModel implements AnalysisModel {
     public AnalysisModelType getType() { return AnalysisModelType.PIOTROSKI; }
 
     @Override
+    public Set<String> requiredMetrics(Map<String, Object> params) {
+        return Set.of("ROA", "OPERATING_CASH_FLOW", "TOTAL_ASSETS", "DEBT_TO_EQUITY",
+                "CURRENT_RATIO", "SHARES_OUTSTANDING", "GROSS_MARGIN",
+                "ASSET_TURNOVER", "EPS_GROWTH");
+    }
+
+    @Override
     public List<StockScore> analyze(List<MetricSnapshot> snapshots, Map<String, Object> params) {
         List<StockScore> scores = new ArrayList<>();
         for (MetricSnapshot s : snapshots) {

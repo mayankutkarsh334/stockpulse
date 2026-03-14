@@ -21,7 +21,7 @@ database:
   initialSize: 2
 
 alphaVantage:
-  apiKey: demo
+  apiKey: NGX48EK3H9MQ42BU
   baseUrl: https://www.alphavantage.co/query
   rateLimitPerMinute: 5
   dailyCallLimit: 25

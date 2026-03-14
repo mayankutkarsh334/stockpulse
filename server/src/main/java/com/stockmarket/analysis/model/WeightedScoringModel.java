@@ -11,8 +11,23 @@ import java.util.stream.*;
 @Slf4j
 public class WeightedScoringModel implements AnalysisModel {
 
+    private static final Set<String> DEFAULT_METRICS =
+            Set.of("PE", "EPS_GROWTH", "ROA", "CURRENT_RATIO", "RSI_14");
+
     @Override
     public AnalysisModelType getType() { return AnalysisModelType.WEIGHTED_SCORE; }
+
+    @Override
+    public Set<String> requiredMetrics(Map<String, Object> params) {
+        if (params != null && params.containsKey("weights")) {
+            @SuppressWarnings("unchecked")
+            Map<String, ?> w = (Map<String, ?>) params.get("weights");
+            Set<String> keys = new HashSet<>();
+            for (String k : w.keySet()) keys.add(k.toUpperCase());
+            return keys;
+        }
+        return DEFAULT_METRICS;
+    }
 
     @Override
     public List<StockScore> analyze(List<MetricSnapshot> snapshots, Map<String, Object> params) {

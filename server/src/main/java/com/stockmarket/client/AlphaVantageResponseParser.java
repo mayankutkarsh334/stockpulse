@@ -42,7 +42,8 @@ public class AlphaVantageResponseParser {
 
     public static StockFundamentals parseFundamentals(String json, String symbol, Exchange exchange) throws IOException {
         JsonNode root = MAPPER.readTree(json);
-        if (root.has("Note") || root.isEmpty()) {
+        if (root.has("Note") || root.has("Information") || root.isEmpty()) {
+            log.warn("Alpha Vantage returned no fundamentals data for {} (rate-limit or unknown symbol)", symbol);
             return StockFundamentals.builder().symbol(symbol).exchange(exchange).fetchedAt(Instant.now()).build();
         }
         return StockFundamentals.builder()
@@ -53,6 +54,7 @@ public class AlphaVantageResponseParser {
                 .description(textOrNull(root, "Description"))
                 .pe(parseDouble(root, "PERatio"))
                 .eps(parseDouble(root, "EPS"))
+                .epsGrowth(parseDouble(root, "QuarterlyEarningsGrowthYOY"))
                 .revenueGrowth(parseDouble(root, "QuarterlyRevenueGrowthYOY"))
                 .marketCap(parseLong(root, "MarketCapitalization"))
                 .dividendYield(parseDouble(root, "DividendYield"))
@@ -92,7 +94,12 @@ public class AlphaVantageResponseParser {
 
     private static Double parseLatestTechnicalValue(String json, String sectionKey, String valueKey) {
         try {
+            if (json == null) return null;
             JsonNode root = MAPPER.readTree(json);
+            if (root.has("Note") || root.has("Information")) {
+                log.warn("Alpha Vantage rate-limit response when parsing {}", valueKey);
+                return null;
+            }
             JsonNode section = root.get(sectionKey);
             if (section == null || !section.fields().hasNext()) return null;
             JsonNode latest = section.fields().next().getValue();
@@ -107,7 +114,12 @@ public class AlphaVantageResponseParser {
     private static Double[] parseLatestMacd(String json) {
         Double[] result = {null, null, null};
         try {
+            if (json == null) return result;
             JsonNode root = MAPPER.readTree(json);
+            if (root.has("Note") || root.has("Information")) {
+                log.warn("Alpha Vantage rate-limit response when parsing MACD");
+                return result;
+            }
             JsonNode section = root.get("Technical Analysis: MACD");
             if (section == null || !section.fields().hasNext()) return result;
             JsonNode latest = section.fields().next().getValue();

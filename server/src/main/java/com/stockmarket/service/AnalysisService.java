@@ -4,9 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stockmarket.analysis.AnalysisEngine;
 import com.stockmarket.analysis.MetricFetcher;
 import com.stockmarket.analysis.MetricSnapshot;
-import com.stockmarket.client.AlphaVantageClient;
-import com.stockmarket.dao.aerospike.FundamentalsCache;
-import com.stockmarket.dao.aerospike.TechnicalsCache;
 import com.stockmarket.dao.mysql.AnalysisConfigDao;
 import com.stockmarket.kafka.producer.AnalysisJobProducer;
 import com.stockmarket.model.dto.request.AnalysisRequest;
@@ -18,49 +15,56 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class AnalysisService {
 
-    private final FundamentalsCache fundamentalsCache;
-    private final TechnicalsCache technicalsCache;
-    private final AlphaVantageClient avClient;
+    private final MetricFetcher fetcher;
+    private final AnalysisEngine engine;
+    private final ExecutorService executor;
     private final AnalysisConfigDao analysisConfigDao;
     private final AnalysisJobProducer analysisJobProducer;
     private final ObjectMapper objectMapper;
 
     @Inject
-    public AnalysisService(final FundamentalsCache fundamentalsCache,
-                           final TechnicalsCache technicalsCache,
-                           final AlphaVantageClient avClient,
+    public AnalysisService(final MetricFetcher fetcher,
+                           final AnalysisEngine engine,
+                           final ExecutorService executor,
                            final AnalysisConfigDao analysisConfigDao,
                            final AnalysisJobProducer analysisJobProducer,
                            final ObjectMapper objectMapper) {
-        this.fundamentalsCache = fundamentalsCache;
-        this.technicalsCache = technicalsCache;
-        this.avClient = avClient;
+        this.fetcher = fetcher;
+        this.engine = engine;
+        this.executor = executor;
         this.analysisConfigDao = analysisConfigDao;
         this.analysisJobProducer = analysisJobProducer;
         this.objectMapper = objectMapper;
     }
 
     public AnalysisResultResponse runAnalysis(final AnalysisRequest req) {
-        final var fetcher = new MetricFetcher(fundamentalsCache, technicalsCache, avClient);
-        final var snapshots = req.getSymbols().stream()
-                .map(s -> {
+        final Set<String> required = engine.requiredMetrics(req.getModelType(), req.getParams());
+
+        final var futures = req.getSymbols().stream()
+                .map(symbol -> CompletableFuture.supplyAsync(() -> {
                     try {
-                        return fetcher.fetch(s, req.getExchange());
+                        return fetcher.fetch(symbol, req.getExchange(), required);
                     } catch (Exception e) {
-                        log.warn("Failed to fetch metrics for {}: {}", s, e.getMessage());
-                        return MetricSnapshot.empty(s, req.getExchange());
+                        log.warn("Failed to fetch metrics for {}: {}", symbol, e.getMessage());
+                        return MetricSnapshot.empty(symbol, req.getExchange());
                     }
-                })
+                }, executor))
                 .collect(Collectors.toList());
 
-        final var engine = new AnalysisEngine();
+        final var snapshots = futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList());
+
         final var scores = engine.analyze(req.getModelType(), snapshots, req.getParams());
 
         final var ranked = scores.stream()
