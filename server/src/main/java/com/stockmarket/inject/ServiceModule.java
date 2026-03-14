@@ -4,6 +4,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
 import com.stockmarket.service.AlertService;
 import com.stockmarket.service.AnalysisService;
+import com.stockmarket.service.CsvAnalysisService;
+import com.stockmarket.service.InvestmentPositionService;
 import com.stockmarket.service.PnLCalculatorService;
 import com.stockmarket.service.PortfolioService;
 import com.stockmarket.service.QuoteService;
@@ -21,5 +23,7 @@ public class ServiceModule extends AbstractModule {
         bind(AlertService.class).in(Singleton.class);
         bind(ScreenerService.class).in(Singleton.class);
         bind(AnalysisService.class).in(Singleton.class);
+        bind(CsvAnalysisService.class).in(Singleton.class);
+        bind(InvestmentPositionService.class).in(Singleton.class);
     }
 }

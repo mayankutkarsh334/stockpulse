@@ -66,6 +66,13 @@ public class WeightedScoringModel implements AnalysisModel {
             }
         }
 
+        // Extract lower-is-better metrics
+        @SuppressWarnings("unchecked")
+        List<String> invertList = (List<String>) params.getOrDefault("invertMetrics", List.of());
+        final Set<String> invertMetrics = invertList.stream()
+                .map(String::toUpperCase)
+                .collect(java.util.stream.Collectors.toSet());
+
         // Score each stock
         List<StockScore> scores = new ArrayList<>();
         for (MetricSnapshot snapshot : snapshots) {
@@ -84,6 +91,7 @@ public class WeightedScoringModel implements AnalysisModel {
                 double min = mins.get(metric);
                 double max = maxs.get(metric);
                 double normalized = (max - min) < 1e-9 ? 0.5 : (rawVal - min) / (max - min);
+                if (invertMetrics.contains(metric)) normalized = 1.0 - normalized;
                 breakdown.put(metric, normalized * weight);
                 totalScore += normalized * weight;
                 totalWeight += weight;

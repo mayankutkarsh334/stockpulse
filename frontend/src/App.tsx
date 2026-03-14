@@ -3,6 +3,8 @@ import PortfolioPage from './pages/PortfolioPage'
 import ScreenerPage from './pages/ScreenerPage'
 import AnalysisPage from './pages/AnalysisPage'
 import ChartPage from './pages/ChartPage'
+import CsvAnalysisPage from './pages/CsvAnalysisPage'
+import MonthlyStrategyPage from './pages/MonthlyStrategyPage'
 
 export default function App() {
   return (
@@ -19,6 +21,12 @@ export default function App() {
           <NavLink to="/analysis" className={({ isActive }) => isActive ? 'text-blue-300' : 'hover:text-blue-300'}>
             Analysis
           </NavLink>
+          <NavLink to="/csv-analysis" className={({ isActive }) => isActive ? 'text-blue-300' : 'hover:text-blue-300'}>
+            CSV Analysis
+          </NavLink>
+          <NavLink to="/strategy" className={({ isActive }) => isActive ? 'text-blue-300' : 'hover:text-blue-300'}>
+            Strategy
+          </NavLink>
         </nav>
         <main className="flex-1 p-6">
           <Routes>
@@ -26,6 +34,8 @@ export default function App() {
             <Route path="/screener" element={<ScreenerPage />} />
             <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/chart/:symbol" element={<ChartPage />} />
+            <Route path="/csv-analysis" element={<CsvAnalysisPage />} />
+            <Route path="/strategy" element={<MonthlyStrategyPage />} />
           </Routes>
         </main>
       </div>

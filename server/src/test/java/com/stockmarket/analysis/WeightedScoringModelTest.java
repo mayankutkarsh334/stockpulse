@@ -15,7 +15,8 @@ class WeightedScoringModelTest {
         return new MetricSnapshot(symbol, Exchange.NSE,
                 pe, null, epsGrowth, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null,
-                rsi, null, null, null, null, null, null, null, null, null, null, null);
+                rsi, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test

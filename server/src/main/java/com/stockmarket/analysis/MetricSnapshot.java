@@ -38,12 +38,26 @@ public record MetricSnapshot(
         Double low52w,
         Double currentPrice,
         Double volume,
-        Double avgVolume
+        Double avgVolume,
+        // CSV / India screener specific
+        String companyName,
+        Double roe,
+        Double roce,
+        Double pbRatio,
+        Double forwardPe,
+        Double pledgedPromoterHoldings,
+        Double oneMonthReturn,
+        Double sixMonthReturn,
+        Double oneYearReturn,
+        Double returnVsNifty,
+        Double percentAwayFrom52wHigh,
+        Double closePrice
 ) {
     public static MetricSnapshot empty(String symbol, Exchange exchange) {
         return new MetricSnapshot(symbol, exchange,
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
@@ -79,6 +93,18 @@ public record MetricSnapshot(
             case "CURRENT_PRICE" -> currentPrice;
             case "VOLUME" -> volume;
             case "AVG_VOLUME" -> avgVolume;
+            // CSV / India screener metrics
+            case "ROE" -> roe;
+            case "ROCE" -> roce;
+            case "PB_RATIO" -> pbRatio;
+            case "FORWARD_PE" -> forwardPe;
+            case "PLEDGED_PROMOTER_HOLDINGS" -> pledgedPromoterHoldings;
+            case "ONE_MONTH_RETURN" -> oneMonthReturn;
+            case "SIX_MONTH_RETURN" -> sixMonthReturn;
+            case "ONE_YEAR_RETURN" -> oneYearReturn;
+            case "RETURN_VS_NIFTY" -> returnVsNifty;
+            case "PCT_AWAY_52W_HIGH" -> percentAwayFrom52wHigh;
+            case "CLOSE_PRICE" -> closePrice;
             default -> null;
         };
     }

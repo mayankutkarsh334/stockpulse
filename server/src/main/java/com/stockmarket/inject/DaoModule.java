@@ -6,6 +6,7 @@ import com.google.inject.Singleton;
 import com.stockmarket.MarketServiceConfiguration;
 import com.stockmarket.dao.mysql.AnalysisConfigDao;
 import com.stockmarket.dao.mysql.HoldingDao;
+import com.stockmarket.dao.mysql.InvestmentPositionDao;
 import com.stockmarket.dao.mysql.PortfolioDao;
 import com.stockmarket.dao.mysql.PriceAlertDao;
 import com.stockmarket.dao.mysql.TransactionDao;
@@ -60,5 +61,11 @@ public class DaoModule extends AbstractModule {
     @Singleton
     AnalysisConfigDao provideAnalysisConfigDao(final Jdbi jdbi) {
         return jdbi.onDemand(AnalysisConfigDao.class);
+    }
+
+    @Provides
+    @Singleton
+    InvestmentPositionDao provideInvestmentPositionDao(final Jdbi jdbi) {
+        return jdbi.onDemand(InvestmentPositionDao.class);
     }
 }

@@ -80,7 +80,9 @@ public class MetricFetcher {
                 t.getRsi14(), t.getMacdValue(), t.getMacdSignal(), t.getMacdHistogram(),
                 t.getSma20(), t.getSma50(), t.getSma200(),
                 f.getHigh52w(), f.getLow52w(), t.getCurrentPrice(),
-                t.getVolume(), t.getAvgVolume()
+                t.getVolume(), t.getAvgVolume(),
+                // CSV-specific fields not populated from Alpha Vantage
+                null, null, null, null, null, null, null, null, null, null, null, null
         );
     }
 }

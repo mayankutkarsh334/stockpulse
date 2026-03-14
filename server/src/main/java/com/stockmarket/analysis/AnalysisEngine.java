@@ -1,6 +1,8 @@
 package com.stockmarket.analysis;
 
 import com.stockmarket.analysis.model.*;
+import com.stockmarket.analysis.model.MagicFormulaModel;
+import com.stockmarket.analysis.model.MultiFactorCompositeModel;
 import com.stockmarket.model.enums.AnalysisModelType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -20,6 +22,8 @@ public class AnalysisEngine {
         models.put(AnalysisModelType.ALTMAN_Z, new AltmanZScoreModel());
         models.put(AnalysisModelType.RELATIVE, new RelativeComparisonModel());
         models.put(AnalysisModelType.CUSTOM, new CustomFormulaModel());
+        models.put(AnalysisModelType.MAGIC_FORMULA, new MagicFormulaModel());
+        models.put(AnalysisModelType.MULTI_FACTOR, new MultiFactorCompositeModel());
     }
 
     public Set<String> requiredMetrics(AnalysisModelType modelType, Map<String, Object> params) {
