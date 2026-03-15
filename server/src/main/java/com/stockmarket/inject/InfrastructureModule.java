@@ -9,9 +9,11 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.stockmarket.MarketServiceConfiguration;
 import com.stockmarket.client.AlphaVantageClient;
+import com.stockmarket.client.MlServiceClient;
 import com.stockmarket.config.AerospikeConfig;
 import com.stockmarket.config.AlphaVantageConfig;
 import com.stockmarket.config.KafkaConfig;
+import com.stockmarket.config.MlServiceConfig;
 import com.stockmarket.config.RabbitMQConfig;
 import com.stockmarket.messaging.rabbitmq.RabbitMQPublisher;
 import io.dropwizard.core.setup.Environment;
@@ -24,6 +26,7 @@ public class InfrastructureModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(AlphaVantageClient.class).in(Singleton.class);
+        bind(MlServiceClient.class).in(Singleton.class);
         bind(RabbitMQPublisher.class).in(Singleton.class);
     }
 
@@ -55,6 +58,12 @@ public class InfrastructureModule extends AbstractModule {
     @Singleton
     RabbitMQConfig provideRabbitMQConfig(final MarketServiceConfiguration config) {
         return config.getRabbitMQ();
+    }
+
+    @Provides
+    @Singleton
+    MlServiceConfig provideMlServiceConfig(final MarketServiceConfiguration config) {
+        return config.getMlService();
     }
 
     @Provides

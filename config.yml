@@ -47,3 +47,6 @@ rabbitMQ:
   username: guest
   password: guest
   notificationQueue: notifications
+
+mlService:
+  baseUrl: http://localhost:8082

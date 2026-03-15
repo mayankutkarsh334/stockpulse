@@ -27,4 +27,7 @@ public class MarketServiceConfiguration extends Configuration {
 
     @Valid @NotNull @JsonProperty
     private RabbitMQConfig rabbitMQ = new RabbitMQConfig();
+
+    @Valid @NotNull @JsonProperty
+    private MlServiceConfig mlService = new MlServiceConfig();
 }

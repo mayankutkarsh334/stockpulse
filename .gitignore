@@ -7,8 +7,7 @@ logs/
 *.log
 
 # Node / Frontend
-src/main/frontend/node_modules/
-src/main/resources/assets/
+frontend/node_modules/
 
 # IDE
 .idea/
@@ -18,3 +17,29 @@ src/main/resources/assets/
 
 # OS
 .DS_Store
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ML model artifacts
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.h5
+
+# Environment / secrets
+.env
+.env.*
+*.env
