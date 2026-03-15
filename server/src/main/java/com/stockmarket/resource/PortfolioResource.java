@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
 
 @Singleton
 @Path("/portfolios")
@@ -27,6 +28,17 @@ public class PortfolioResource {
     @Inject
     public PortfolioResource(final PortfolioService portfolioService) {
         this.portfolioService = portfolioService;
+    }
+
+    @GET
+    @Operation(summary = "List portfolios for a user, optionally filtered by type")
+    public List<PortfolioResponse> listPortfolios(
+            @QueryParam("userId") final String userId,
+            @QueryParam("type") final String type) {
+        if ("COFFEE_CAN".equals(type)) {
+            return portfolioService.listCoffeeCanPortfolios(userId);
+        }
+        return portfolioService.listByUserId(userId);
     }
 
     @POST

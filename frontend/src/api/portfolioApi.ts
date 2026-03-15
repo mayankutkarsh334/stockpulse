@@ -12,6 +12,7 @@ export interface HoldingResponse {
   pnl: number
   pnlPercent: number
   currency: string
+  holdDurationDays: number | null
 }
 
 export interface PortfolioResponse {

@@ -119,6 +119,13 @@
         </sql>
     </changeSet>
 
+    <changeSet id="009-add-portfolio-type" author="stockmarket">
+        <sql>
+            ALTER TABLE portfolios
+                ADD COLUMN type ENUM('REGULAR','COFFEE_CAN') NOT NULL DEFAULT 'REGULAR' AFTER currency;
+        </sql>
+    </changeSet>
+
     <changeSet id="008-create-investment-positions" author="stockmarket">
         <sql>
             CREATE TABLE IF NOT EXISTS investment_positions (

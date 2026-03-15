@@ -13,7 +13,7 @@ import java.util.Optional;
 @RegisterBeanMapper(Portfolio.class)
 public interface PortfolioDao {
 
-    @SqlUpdate("INSERT INTO portfolios (id, user_id, name, currency) VALUES (:id, :userId, :name, :currency)")
+    @SqlUpdate("INSERT INTO portfolios (id, user_id, name, currency, type) VALUES (:id, :userId, :name, :currency, :type)")
     void insert(@BindBean Portfolio portfolio);
 
     @SqlQuery("SELECT * FROM portfolios WHERE id = :id")
@@ -21,6 +21,9 @@ public interface PortfolioDao {
 
     @SqlQuery("SELECT * FROM portfolios WHERE user_id = :userId ORDER BY created_at DESC")
     List<Portfolio> findByUserId(@Bind("userId") String userId);
+
+    @SqlQuery("SELECT * FROM portfolios WHERE user_id = :userId AND type = :type ORDER BY created_at DESC")
+    List<Portfolio> findByUserIdAndType(@Bind("userId") String userId, @Bind("type") String type);
 
     @SqlUpdate("UPDATE portfolios SET name = :name WHERE id = :id")
     int updateName(@Bind("id") String id, @Bind("name") String name);

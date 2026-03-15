@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Singleton
@@ -37,6 +39,9 @@ public class PnLCalculatorService {
                 ? BigDecimal.ZERO
                 : pnl.divide(investedValue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
 
+        final long holdDurationDays = holding.getCreatedAt() != null
+                ? ChronoUnit.DAYS.between(holding.getCreatedAt().toLocalDate(), LocalDate.now()) : 0L;
+
         return HoldingResponse.builder()
                 .id(holding.getId())
                 .symbol(holding.getSymbol())
@@ -49,6 +54,7 @@ public class PnLCalculatorService {
                 .pnl(pnl.setScale(2, RoundingMode.HALF_UP))
                 .pnlPercent(pnlPercent.setScale(2, RoundingMode.HALF_UP))
                 .currency(holding.getCurrency())
+                .holdDurationDays(holdDurationDays)
                 .build();
     }
 

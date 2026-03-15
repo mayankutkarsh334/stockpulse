@@ -118,4 +118,10 @@
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         </sql>
     </changeSet>
+
+    <changeSet id="008-add-portfolio-type" author="stockmarket">
+        <sql>
+            ALTER TABLE portfolios ADD COLUMN type VARCHAR(20) NOT NULL DEFAULT 'REGULAR';
+        </sql>
+    </changeSet>
 </databaseChangeLog>

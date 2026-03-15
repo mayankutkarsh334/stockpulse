@@ -10,6 +10,7 @@ import com.stockmarket.model.dto.response.PortfolioResponse;
 import com.stockmarket.model.entity.Holding;
 import com.stockmarket.model.entity.Portfolio;
 import com.stockmarket.model.entity.Transaction;
+import com.stockmarket.model.enums.PortfolioType;
 import com.stockmarket.model.enums.TransactionType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -49,6 +50,7 @@ public class PortfolioService {
                 .userId(req.getUserId())
                 .name(req.getName())
                 .currency(req.getCurrency())
+                .type(req.getType() != null ? req.getType() : PortfolioType.REGULAR)
                 .build();
         portfolioDao.insert(portfolio);
         return portfolio;
@@ -86,6 +88,18 @@ public class PortfolioService {
                 .holdings(holdingResponses)
                 .createdAt(portfolio.getCreatedAt())
                 .build();
+    }
+
+    public List<PortfolioResponse> listByUserId(final String userId) {
+        return portfolioDao.findByUserId(userId).stream()
+                .map(p -> getPortfolioWithPnL(p.getId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<PortfolioResponse> listCoffeeCanPortfolios(final String userId) {
+        return portfolioDao.findByUserIdAndType(userId, "COFFEE_CAN").stream()
+                .map(p -> getPortfolioWithPnL(p.getId()))
+                .collect(Collectors.toList());
     }
 
     public Transaction addTransaction(final String portfolioId, final AddTransactionRequest req) {

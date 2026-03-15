@@ -21,4 +21,5 @@ public class HoldingResponse {
     private BigDecimal pnl;
     private BigDecimal pnlPercent;
     private Currency currency;
+    private Long holdDurationDays;
 }
